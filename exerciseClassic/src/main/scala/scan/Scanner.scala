@@ -46,11 +46,20 @@ object PathScan {
   def empty = PathScan(SortedSet.empty, 0, 0)
 
   def topNMonoid(n: Int): Monoid[PathScan] = new Monoid[PathScan] {
+
     def empty: PathScan = PathScan.empty
 
-    def combine(p1: PathScan, p2: PathScan): PathScan = ???
-  }
+    def combine(p1: PathScan, p2: PathScan): PathScan = {
+      import cats.instances.all._
 
+      val list = p1.largestFiles.toList.combine(p2.largestFiles.toList).sorted(FileSize.ordering).take(n)
+      PathScan(
+        SortedSet(list: _*),
+        p1.totalSize + p2.totalSize,
+        p1.totalCount + p2.totalCount
+      )
+    }
+  }
 }
 
 case class FileSize(path: Path, size: Long)
