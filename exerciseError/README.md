@@ -55,7 +55,7 @@ Lets instead convert them to an `Either[String, ?]` and combine them with the va
 
 ### :mag: _Study Code_
 
-- Whats going on in `pathScan` with this code:
+- Whats going on in `scanReport` with this code:
 ```
  scan <- pathScan[Fx.prepend[Reader[ScanConfig, ?], R]](fs.filePath(base)).
       runReader[ScanConfig](ScanConfig(topNValid))

@@ -37,20 +37,20 @@ object Scanner {
   def main(args: Array[String]): Unit = {
     val program = scanReport[R](args)
     
-    program.runReader(DefaultFilesystem: Filesystem).runEither.runAsync.runSyncUnsafe(1.minute) match {
+    program.runReader(DefaultFilesystem: Filesystem).runEither.runAsync.attempt.runSyncUnsafe(1.minute) match {
       case Right(report) => println(report)
       case Left(msg) => println(s"Scan failed: $msg")
     }
   }
 
-  def scanReport[R: _task: _filesystem](args: Array[String]): Eff[R, String] = for {
+  def scanReport[R: _task: _filesystem: _err](args: Array[String]): Eff[R, String] = for {
     base <- optionEither(args.lift(0), s"Path to scan must be specified.\n$Usage")
 
     topN <- {
       val n = args.lift(1).getOrElse("10")
       fromEither(n.parseInt.leftMap(_ => s"Number of files must be numeric: $n"))
     }
-    topNValid <- ???
+    topNValid <- if (topN >= 0) topN.pureEff[R] else left(s"Invalid number of files ${topN}")
 
     fs <- ask[R, Filesystem]
 
