@@ -15,9 +15,11 @@ import scala.concurrent.duration._
 
 
 object Scanner {
+  implicit val s = Scheduler(ExecutionModel.BatchedExecution(32))
 
   def main(args: Array[String]): Unit = {
     val program = scanReport(Paths.get(args(0)), 10).map(println)
+    program.runSyncUnsafe(1.minute)
   }
 
   def scanReport(base: Path, topN: Int): Task[String] = for {
@@ -37,7 +39,7 @@ object Scanner {
           try jstream.toScala[List]
           finally jstream.close()
         }
-        scans <- files.map(subpath => pathScan(FilePath(subpath), topN))
+        scans <- files.traverse[Task, PathScan](subpath => pathScan(FilePath(subpath), topN))
       } yield scans.combineAll(PathScan.topNMonoid(topN))
     case Other(_) =>
       Task(PathScan.empty)
