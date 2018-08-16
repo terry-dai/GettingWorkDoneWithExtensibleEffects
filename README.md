@@ -76,7 +76,7 @@ It is suggested to do the exercises in this order. The instruction pages are bes
 - [Error effect](exerciseError/README.md) - Using Either effect for error handling
 - [Writer effect](exerciseWriter/README.md) - Using Writer effect for logging
 - [State effect](exerciseState/README.md) - Using State effect to keep track of Symlinks encountered
-- [Concurrency](exerciseConcurrency/README.md) - Scanning directories in parallel with applicative traversal
+- [Concurrent](exerciseConcurrent/README.md) - Scanning directories in parallel with applicative traversal
 - [Optics](exerciseOptics/README.md) - Using Optics to change the focus of a Reader effect
 - [Custom Effects](exerciseCustom/README.md) - Using a custom Filesystem effect
 
