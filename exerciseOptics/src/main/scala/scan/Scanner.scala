@@ -73,10 +73,16 @@ object Scanner {
 
 object EffOptics {
 
-  // "If I have a Reader of S effect, and a Lens from S to T, then I have a Reader of T effect"
-  implicit def readerLens[R, S, T](implicit m: MemberIn[Reader[S, ?], R], l: Lens[S, T]): MemberIn[Reader[T, ?], R] =
+//  // "If I have a Reader of S effect, and a Lens from S to T, then I have a Reader of T effect"
+//  implicit def readerLens[R, S, T](implicit m: MemberIn[Reader[S, ?], R], l: Lens[S, T]): MemberIn[Reader[T, ?], R] =
+//    m.transform(new (Reader[T, ?] ~> Reader[S, ?]) {
+//      def apply[X](f: Reader[T, X]): Reader[S, X] = Reader[S, X](s => f(l.get(s)))
+//    })
+
+
+  implicit def readerLens[R, S, T](implicit m: MemberIn[Reader[S, ?], R], l: S => T): MemberIn[Reader[T, ?], R] =
     m.transform(new (Reader[T, ?] ~> Reader[S, ?]) {
-      def apply[X](f: Reader[T, X]) = ???
+      def apply[X](f: Reader[T, X]): Reader[S, X] = Reader[S, X](s => f(l(s)))
     })
 
 }
@@ -118,6 +124,10 @@ case class AppConfig(scanConfig: ScanConfig, filesystem: Filesystem)
 object AppConfig {
 
   implicit val _filesystem: Lens[AppConfig, Filesystem] = GenLens[AppConfig](_.filesystem)
+  implicit def transformFilesystem(s: AppConfig): Filesystem = s.filesystem
+
+  implicit val _scanConfig: Lens[AppConfig, ScanConfig] = GenLens[AppConfig](_.scanConfig)
+  implicit def transformScanConfig(s: AppConfig): ScanConfig = s.scanConfig
 }
 
 case class ScanConfig(topN: Int)
