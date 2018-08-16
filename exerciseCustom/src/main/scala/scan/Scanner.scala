@@ -65,7 +65,7 @@ object Scanner {
 
   } yield ReportFormat.largeFilesReport(scan, base.toString)
 
-  def pathScan[R: _task: _filesystem: _config: _log](path: FilePath): Eff[R, PathScan] = path match {
+  def pathScan[R: _filesystem: _config: _log](path: FilePath): Eff[R, PathScan] = path match {
 
     case f: File =>
       for {
@@ -132,10 +132,9 @@ trait Filesystem {
     val sideEffect = new SideEffect[FilesystemCmd] {
       def apply[X](fsc: FilesystemCmd[X]): X =
         (fsc match {
-
-          //replace this handler with your FilesystemCmd cases here
-          case _ => ???
-
+          case MkFilePath(path) => filePath(path)
+          case Length(file) => length(file)
+          case ListFiles(dir) => listFiles(dir)
         }).asInstanceOf[X]
 
       def applicative[X, Tr[_] : Traverse](ms: Tr[FilesystemCmd[X]]): Tr[X] =
@@ -206,7 +205,6 @@ object FileSize {
 }
 
 object EffTypes {
-
   type _filesystem[R] = FilesystemCmd |= R
   type _config[R] = Reader[ScanConfig, ?] <= R
   type _err[R] = Either[String, ?] <= R
