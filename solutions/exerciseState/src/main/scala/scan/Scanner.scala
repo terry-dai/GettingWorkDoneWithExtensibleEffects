@@ -62,7 +62,7 @@ object Scanner {
 
     finish <- taskDelay(System.currentTimeMillis())
 
-    _ <- tell(Log.info(s"Scan of $base completed in ${finish - start}ms"))
+    _ <- tell(Log.info(s"Scan of $base completed in ${finish - start}ms, start: $start, finish: $finish"))
 
   } yield ReportFormat.largeFilesReport(scan, base.toString)
 

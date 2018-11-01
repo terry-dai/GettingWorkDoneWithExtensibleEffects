@@ -1,27 +1,24 @@
 package scan
 
 import java.nio.file._
+import java.time._
+import java.time.format.{DateTimeFormatter, FormatStyle}
+import java.util.Locale
 
 import scala.compat.java8.StreamConverters._
 import scala.collection.SortedSet
-
 import cats._
 import cats.data._
 import cats.implicits._
-
 import mouse.all._
-
 import org.atnos.eff._
 import org.atnos.eff.all._
 import org.atnos.eff.syntax.all._
-
 import org.atnos.eff.addon.monix._
 import org.atnos.eff.addon.monix.task._
 import org.atnos.eff.syntax.addon.monix.task._
-
 import monix.eval._
 import monix.execution._
-
 import EffTypes._
 
 import scala.concurrent.duration._
@@ -31,11 +28,16 @@ object Scanner {
   val Usage = "Scanner <path> [number of largest files to track]"
 
   type R = Fx.fx4[Task, Reader[Filesystem, ?], Either[String, ?], Writer[Log, ?]]
+  val formatter = DateTimeFormatter.ofLocalizedDateTime( FormatStyle.FULL )
+    .withLocale( Locale.ENGLISH )
+    .withZone( ZoneId.systemDefault() )
 
   implicit val s = Scheduler(ExecutionModel.BatchedExecution(32))
 
   def main(args: Array[String]): Unit = {
     val program = scanReport[R](args).map(println)
+    println(formatter.format(Instant.now))
+
 
     program.runReader(DefaultFilesystem: Filesystem).runEither.runWriterUnsafe[Log]{
       case Error(msg) => System.err.println(msg)
@@ -55,14 +57,26 @@ object Scanner {
 
     fs <- ask[R, Filesystem]
 
-    start <- taskDelay(System.currentTimeMillis())
+
 
     scan <- pathScan[Fx.prepend[Reader[ScanConfig, ?], R]](
       fs.filePath(base)).runReader[ScanConfig](ScanConfig(topNValid))
+    a = Task.eval(println(s"a - Time: ${Instant.now}"))
+    d = println(s"d - Time: ${Instant.now}")
+    b = Task.now(println(s"b - Time: ${Instant.now}"))
+    c = Task.suspend(Task.now(println(s"c - Time: ${Instant.now}")))
+    _ <- d.pureEff[R]
 
-    finish <- taskDelay(System.currentTimeMillis())
+    _ <- List[Task[Unit]](a, b, c).traverse(t => fromTask(t))
 
-    _ <- tell(Log.info(s"Scan of $base completed in ${finish - start}ms"))
+
+    start <- taskDelay(System.currentTimeMillis())
+//    finish <- fromTask(Task.now(System.currentTimeMillis()))
+    finish = System.currentTimeMillis()
+
+
+
+    _ <- tell(Log.info(s"Scan of $base completed in ${finish - start}ms, start: ${formatter.format(Instant.ofEpochMilli(start))}, finish: ${formatter.format(Instant.ofEpochMilli(finish))}"))
 
   } yield ReportFormat.largeFilesReport(scan, base.toString)
 
@@ -78,13 +92,14 @@ object Scanner {
       for {
         filesystem <- ask[R, Filesystem]
         topN <- takeTopN
-        fileList <- taskDelay(filesystem.listFiles(dir))
-        childScans <- fileList.traverseA(pathScan[R](_))
-        _ <- {
-          val dirCount = fileList.count(_.isInstanceOf[Directory])
-          val fileCount = fileList.count(_.isInstanceOf[File])
-          tell(Log.debug(s"Scanning directory '$dir': $dirCount subdirectories and $fileCount files"))
-        }
+//        fileList <- taskDelay(filesystem.listFiles(dir))
+//        childScans <- fileList.traverseA(pathScan[R](_))
+        childScans <- filesystem.listFiles(dir).traverseA(pathScan[R](_))
+//        _ <- {
+//          val dirCount = fileList.count(_.isInstanceOf[Directory])
+//          val fileCount = fileList.count(_.isInstanceOf[File])
+//          tell(Log.debug(s"Scanning directory '$dir': $dirCount subdirectories and $fileCount files"))
+//        }
       } yield childScans.combineAll(topN)
 
     case Other(_) =>
